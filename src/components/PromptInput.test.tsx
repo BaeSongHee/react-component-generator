@@ -49,6 +49,22 @@ describe('PromptInput', () => {
     expect(onGenerate).not.toHaveBeenCalled();
   });
 
+  it('히스토리 항목을 보여주고 클릭하면 입력창에 채운다', async () => {
+    const user = userEvent.setup();
+    render(
+      <PromptInput onGenerate={vi.fn()} isLoading={false} history={['프로필 카드', '검색 바']} />,
+    );
+
+    expect(screen.getByText('최근 프롬프트')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '검색 바' }));
+    expect(screen.getByRole('textbox')).toHaveValue('검색 바');
+  });
+
+  it('히스토리가 비어 있으면 최근 프롬프트 영역을 보여주지 않는다', () => {
+    render(<PromptInput onGenerate={vi.fn()} isLoading={false} history={[]} />);
+    expect(screen.queryByText('최근 프롬프트')).not.toBeInTheDocument();
+  });
+
   it('500자를 넘은 상태에서 Ctrl+Enter로도 제출되지 않는다', async () => {
     const onGenerate = vi.fn();
     const user = userEvent.setup();

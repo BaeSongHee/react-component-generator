@@ -14,7 +14,7 @@
 `
 `Immutable:
 `- API 키를 코드/로그/응답에 노출하지 않는다. 서버 환경변수 키는 불리언으로만 클라이언트에 알린다 (`server/index.ts:148-154` `/api/config`). 키 값 자체를 응답에 포함 금지.
-`- 클라이언트가 입력한 API 키는 React state에만 둔다 (`src/App.tsx:14`). localStorage/sessionStorage 등에 저장 금지.
+`- 클라이언트가 입력한 API 키는 React state에만 둔다 (`src/App.tsx:21`). localStorage/sessionStorage 등에 저장 금지. (provider·히스토리·컴포넌트 목록만 `src/utils/storage.ts`로 저장한다. 이 모듈에 키 관련 항목 추가 금지.)
 `- Google 호출 URL에는 키가 쿼리스트링으로 들어간다 (`server/index.ts:99`). 이 URL이나 에러 객체 전체를 로그/응답에 출력 금지.
 `- `.env`는 커밋 금지 (`.gitignore`로 제외됨).
 `

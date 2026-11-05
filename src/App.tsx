@@ -3,6 +3,13 @@ import { PromptInput } from './components/PromptInput';
 import { ComponentCard } from './components/ComponentCard';
 import { useComponentGenerator } from './hooks/useComponentGenerator';
 import type { Provider } from './types';
+import {
+  addToHistory,
+  loadHistory,
+  loadProvider,
+  saveHistory,
+  saveProvider,
+} from './utils/storage';
 import './App.css';
 
 const PROVIDER_CONFIG = {
@@ -13,12 +20,13 @@ const PROVIDER_CONFIG = {
 function App() {
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
-  const [provider, setProvider] = useState<Provider>('google');
+  const [provider, setProvider] = useState<Provider>(loadProvider);
+  const [history, setHistory] = useState<string[]>(loadHistory);
   const [envKeys, setEnvKeys] = useState<Record<Provider, boolean>>({
     anthropic: false,
     google: false,
   });
-  const { components, isLoading, error, generate, removeComponent, clearAll } =
+  const { components, isLoading, error, storageWarning, generate, removeComponent, clearAll } =
     useComponentGenerator();
 
   useEffect(() => {
@@ -30,16 +38,21 @@ function App() {
 
   const hasEnvKey = envKeys[provider];
 
-  const handleGenerate = (prompt: string) => {
+  const handleGenerate = async (prompt: string) => {
     if (!apiKey.trim() && !hasEnvKey) {
       alert(`${PROVIDER_CONFIG[provider].label} API 키를 입력하거나 .env에 설정해주세요.`);
       return;
     }
-    generate(prompt, apiKey || undefined, provider);
+    const ok = await generate(prompt, apiKey || undefined, provider);
+    if (!ok) return;
+    const nextHistory = addToHistory(history, prompt);
+    setHistory(nextHistory);
+    saveHistory(nextHistory);
   };
 
   const handleProviderChange = (newProvider: Provider) => {
     setProvider(newProvider);
+    saveProvider(newProvider);
     setApiKey('');
   };
 
@@ -69,7 +82,7 @@ function App() {
             <span className="win-title-text">새 컴포넌트</span>
           </div>
           <div className="win-body">
-            <PromptInput onGenerate={handleGenerate} isLoading={isLoading} />
+            <PromptInput onGenerate={handleGenerate} isLoading={isLoading} history={history} />
           </div>
         </section>
 
@@ -121,6 +134,13 @@ function App() {
           </div>
         </aside>
       </main>
+
+      {storageWarning && (
+        <div className="error-banner" role="status">
+          <span className="error-icon" aria-hidden="true">!</span>
+          <p>{storageWarning}</p>
+        </div>
+      )}
 
       {error && (
         <div className="error-banner" role="alert">
