@@ -76,4 +76,21 @@ describe('PromptInput', () => {
 
     expect(onGenerate).not.toHaveBeenCalled();
   });
+
+  it('히스토리가 있으면 기록 지우기 버튼이 onClearHistory를 호출한다', async () => {
+    const onClearHistory = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <PromptInput onGenerate={vi.fn()} isLoading={false} history={['카드']} onClearHistory={onClearHistory} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '기록 지우기' }));
+
+    expect(onClearHistory).toHaveBeenCalledTimes(1);
+  });
+
+  it('히스토리가 없으면 기록 지우기 버튼을 보여주지 않는다', () => {
+    render(<PromptInput onGenerate={vi.fn()} isLoading={false} onClearHistory={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: '기록 지우기' })).not.toBeInTheDocument();
+  });
 });

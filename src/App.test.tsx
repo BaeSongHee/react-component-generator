@@ -87,12 +87,30 @@ describe('App 영속성', () => {
     expect(localStorage.getItem(STORAGE_KEYS.history)).toBeNull();
   });
 
-  it('컴포넌트 저장에 실패하면 경고 배너를 보여준다', () => {
+  it('컴포넌트 저장에 실패하면 경고 배너를 보여준다', async () => {
+    mockApi({ generateOk: true });
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('quota', 'QuotaExceededError');
     });
+    const user = userEvent.setup();
     render(<App />);
-    expect(screen.getByText(/저장 공간이 부족/)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('API Key'), 'k');
+    await user.type(screen.getByPlaceholderText(/고객 목록/), '프로필 카드');
+    await user.click(screen.getByRole('button', { name: '컴포넌트 생성' }));
+
+    expect(await screen.findByText(/저장 공간이 부족/)).toBeInTheDocument();
     spy.mockRestore();
+  });
+
+  it('기록 지우기를 누르면 화면과 저장소의 히스토리가 비워진다', async () => {
+    saveHistory(['프로필 카드']);
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: '기록 지우기' }));
+
+    expect(screen.queryByRole('button', { name: '프로필 카드' })).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.history) ?? 'null')).toEqual([]);
   });
 });

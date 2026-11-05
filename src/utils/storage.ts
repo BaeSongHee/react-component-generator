@@ -78,11 +78,12 @@ function reviveComponent(value: unknown): GeneratedComponent | null {
 export function loadComponents(): GeneratedComponent[] {
   const value = readJSON(STORAGE_KEYS.components);
   if (!Array.isArray(value)) return [];
-  const seen = new Set<string>();
-  return value
-    .map(reviveComponent)
-    .filter((c): c is GeneratedComponent => c !== null)
-    .filter((c) => !seen.has(c.id) && seen.add(c.id));
+  const byId = new Map<string, GeneratedComponent>();
+  for (const item of value) {
+    const component = reviveComponent(item);
+    if (component && !byId.has(component.id)) byId.set(component.id, component);
+  }
+  return [...byId.values()];
 }
 
 /** 최신 COMPONENTS_MAX개만 저장한다. 쓰기에 실패하면 false를 반환한다. */

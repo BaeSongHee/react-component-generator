@@ -5,6 +5,7 @@ interface PromptInputProps {
   onGenerate: (prompt: string) => void;
   isLoading: boolean;
   history?: string[];
+  onClearHistory?: () => void;
 }
 
 const EXAMPLES = [
@@ -35,7 +36,7 @@ function ChipList({ label, items, onSelect }: ChipListProps) {
   );
 }
 
-export function PromptInput({ onGenerate, isLoading, history = [] }: PromptInputProps) {
+export function PromptInput({ onGenerate, isLoading, history = [], onClearHistory }: PromptInputProps) {
   const [prompt, setPrompt] = useState('');
   const validation = validatePromptLength(prompt);
 
@@ -92,7 +93,14 @@ export function PromptInput({ onGenerate, isLoading, history = [] }: PromptInput
         </button>
       </form>
       {history.length > 0 && (
-        <ChipList label="최근 프롬프트" items={history} onSelect={handleExampleClick} />
+        <>
+          <ChipList label="최근 프롬프트" items={history} onSelect={handleExampleClick} />
+          {onClearHistory && (
+            <button className="example-chip" onClick={onClearHistory} type="button">
+              기록 지우기
+            </button>
+          )}
+        </>
       )}
       <ChipList label="예시 프롬프트" items={EXAMPLES} onSelect={handleExampleClick} />
     </div>

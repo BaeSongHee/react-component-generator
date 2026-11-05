@@ -50,6 +50,11 @@ function App() {
     saveHistory(nextHistory);
   };
 
+  const handleClearHistory = () => {
+    setHistory([]);
+    saveHistory([]);
+  };
+
   const handleProviderChange = (newProvider: Provider) => {
     setProvider(newProvider);
     saveProvider(newProvider);
@@ -82,7 +87,12 @@ function App() {
             <span className="win-title-text">새 컴포넌트</span>
           </div>
           <div className="win-body">
-            <PromptInput onGenerate={handleGenerate} isLoading={isLoading} history={history} />
+            <PromptInput
+              onGenerate={handleGenerate}
+              isLoading={isLoading}
+              history={history}
+              onClearHistory={handleClearHistory}
+            />
           </div>
         </section>
 
