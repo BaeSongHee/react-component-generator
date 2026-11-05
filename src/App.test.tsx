@@ -86,4 +86,13 @@ describe('App 영속성', () => {
     await screen.findByText(/503/);
     expect(localStorage.getItem(STORAGE_KEYS.history)).toBeNull();
   });
+
+  it('컴포넌트 저장에 실패하면 경고 배너를 보여준다', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+    render(<App />);
+    expect(screen.getByText(/저장 공간이 부족/)).toBeInTheDocument();
+    spy.mockRestore();
+  });
 });

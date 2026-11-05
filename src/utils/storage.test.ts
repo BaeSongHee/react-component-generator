@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
+  COMPONENTS_MAX,
   HISTORY_MAX,
   STORAGE_KEYS,
   addToHistory,
@@ -144,6 +145,27 @@ describe('저장 실패 처리', () => {
     expect(() => saveHistory(['a'])).not.toThrow();
     expect(() => saveComponents([])).not.toThrow();
     spy.mockRestore();
+  });
+
+  it('saveComponents는 성공하면 true, 쓰기에 실패하면 false를 반환한다', () => {
+    expect(saveComponents([])).toBe(true);
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+    expect(saveComponents([])).toBe(false);
+    spy.mockRestore();
+  });
+
+  it('saveComponents는 최신 COMPONENTS_MAX개만 저장한다', () => {
+    const many = Array.from({ length: COMPONENTS_MAX + 3 }, (_, i) => ({
+      id: `id${i}`,
+      prompt: 'p',
+      code: 'c',
+      createdAt: new Date('2026-01-02T03:04:05.000Z'),
+    }));
+    saveComponents(many);
+    expect(COMPONENTS_MAX).toBeGreaterThan(0);
+    expect(loadComponents().map((c) => c.id)).toEqual(many.slice(0, COMPONENTS_MAX).map((c) => c.id));
   });
 });
 

@@ -26,7 +26,7 @@ function App() {
     anthropic: false,
     google: false,
   });
-  const { components, isLoading, error, generate, removeComponent, clearAll } =
+  const { components, isLoading, error, storageWarning, generate, removeComponent, clearAll } =
     useComponentGenerator();
 
   useEffect(() => {
@@ -134,6 +134,13 @@ function App() {
           </div>
         </aside>
       </main>
+
+      {storageWarning && (
+        <div className="error-banner" role="status">
+          <span className="error-icon" aria-hidden="true">!</span>
+          <p>{storageWarning}</p>
+        </div>
+      )}
 
       {error && (
         <div className="error-banner" role="alert">

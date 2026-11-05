@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const HISTORY_MAX = 20;
+export const COMPONENTS_MAX = 50;
 
 const DEFAULT_PROVIDER: Provider = 'google';
 const PROVIDERS: readonly Provider[] = ['anthropic', 'google'];
@@ -22,11 +23,12 @@ function readJSON(key: string): unknown {
 }
 
 // 용량 초과·사생활 보호 모드 등으로 쓰기가 실패해도 앱 동작은 유지한다.
-function writeJSON(key: string, value: unknown): void {
+function writeJSON(key: string, value: unknown): boolean {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    // 저장 실패는 무시
+    return false;
   }
 }
 
@@ -83,6 +85,7 @@ export function loadComponents(): GeneratedComponent[] {
     .filter((c) => !seen.has(c.id) && seen.add(c.id));
 }
 
-export function saveComponents(components: GeneratedComponent[]): void {
-  writeJSON(STORAGE_KEYS.components, components);
+/** 최신 COMPONENTS_MAX개만 저장한다. 쓰기에 실패하면 false를 반환한다. */
+export function saveComponents(components: GeneratedComponent[]): boolean {
+  return writeJSON(STORAGE_KEYS.components, components.slice(0, COMPONENTS_MAX));
 }

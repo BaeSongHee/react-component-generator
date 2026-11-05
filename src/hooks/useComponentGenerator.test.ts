@@ -66,3 +66,19 @@ describe('useComponentGenerator generate 결과', () => {
     expect(ok).toBe(false);
   });
 });
+
+describe('useComponentGenerator 저장 경고', () => {
+  it('컴포넌트 저장에 실패하면 storageWarning을 노출한다', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+    const { result } = renderHook(() => useComponentGenerator());
+    expect(result.current.storageWarning).toMatch(/저장/);
+    spy.mockRestore();
+  });
+
+  it('저장에 성공하면 storageWarning이 null이다', () => {
+    const { result } = renderHook(() => useComponentGenerator());
+    expect(result.current.storageWarning).toBeNull();
+  });
+});

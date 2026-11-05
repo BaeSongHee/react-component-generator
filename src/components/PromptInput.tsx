@@ -16,6 +16,25 @@ const EXAMPLES = [
   '테이블 행 상세보기 패널. 선택한 고객의 기본 정보와 최근 활동 표시',
 ];
 
+interface ChipListProps {
+  label: string;
+  items: readonly string[];
+  onSelect: (item: string) => void;
+}
+
+function ChipList({ label, items, onSelect }: ChipListProps) {
+  return (
+    <div className="prompt-examples">
+      <span className="examples-label">{label}</span>
+      {items.map((item) => (
+        <button key={item} className="example-chip" onClick={() => onSelect(item)} type="button">
+          {item}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function PromptInput({ onGenerate, isLoading, history = [] }: PromptInputProps) {
   const [prompt, setPrompt] = useState('');
   const validation = validatePromptLength(prompt);
@@ -73,33 +92,9 @@ export function PromptInput({ onGenerate, isLoading, history = [] }: PromptInput
         </button>
       </form>
       {history.length > 0 && (
-        <div className="prompt-examples">
-          <span className="examples-label">최근 프롬프트</span>
-          {history.map((item) => (
-            <button
-              key={item}
-              className="example-chip"
-              onClick={() => handleExampleClick(item)}
-              type="button"
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+        <ChipList label="최근 프롬프트" items={history} onSelect={handleExampleClick} />
       )}
-      <div className="prompt-examples">
-        <span className="examples-label">예시 프롬프트</span>
-        {EXAMPLES.map((example) => (
-          <button
-            key={example}
-            className="example-chip"
-            onClick={() => handleExampleClick(example)}
-            type="button"
-          >
-            {example}
-          </button>
-        ))}
-      </div>
+      <ChipList label="예시 프롬프트" items={EXAMPLES} onSelect={handleExampleClick} />
     </div>
   );
 }
