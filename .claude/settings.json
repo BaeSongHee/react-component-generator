@@ -5,6 +5,17 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/tdd-remind.sh\"",
+            "timeout": 10,
+            "statusMessage": "TDD 규칙 확인 중..."
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
