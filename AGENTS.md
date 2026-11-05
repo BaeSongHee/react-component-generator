@@ -17,6 +17,8 @@
 `- 클라이언트가 입력한 API 키는 React state에만 둔다 (`src/App.tsx:21`). localStorage/sessionStorage 등에 저장 금지. (provider·히스토리·컴포넌트 목록만 `src/utils/storage.ts`로 저장한다. 이 모듈에 키 관련 항목 추가 금지.)
 `- Google 호출 URL에는 키가 쿼리스트링으로 들어간다 (`server/index.ts:99`). 이 URL이나 에러 객체 전체를 로그/응답에 출력 금지.
 `- `.env`는 커밋 금지 (`.gitignore`로 제외됨).
+`- 민감 파일 읽기/수정 금지: `.env`, `.env.*`, `*credential*`, `*secret*`, `*.pem`, `*.key`, `.npmrc`, `.netrc`, `.ssh/`, `.aws/`, `.claude/settings.local.json`은 Read/Edit은 물론 `cat`/`grep`/`cp`/`source` 같은 Bash 우회도 하지 않는다. `.claude/settings.json`의 `permissions.deny`가 1차 차단하지만 완전하지 않으므로 규칙으로도 지킨다. 환경변수가 필요하면 값을 읽지 말고 사용자에게 설정 여부만 묻는다. `.env.example`도 같은 패턴에 걸리므로 필요하면 사용자에게 요청한다.
+`- `permissions.deny` 패턴을 완화/삭제하거나 `.claude/settings.json`을 수정해 차단을 우회하지 않는다. 새 민감 파일 유형이 생기면 deny 목록과 이 규칙을 함께 갱신한다.
 `
 `Do's & Don'ts (근거 기반):
 `- Hard Constraint: 미리보기는 `react-live`의 `noInline` 모드라 코드에 `render(<X />)` 호출이 반드시 있어야 한다 (`src/components/LivePreview.tsx:11`, `server/generator.ts:12-15`). 생성 코드에 `import` 문과 TypeScript 문법이 있으면 실행되지 않는다 (`server/index.ts:11,20` 시스템 프롬프트). 시스템 프롬프트를 수정할 때 이 제약을 유지한다.

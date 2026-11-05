@@ -1,5 +1,62 @@
 {
   "worktree": {
     "baseRef": "head"
+  },
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(**/*.keystore)",
+      "Read(**/id_rsa*)",
+      "Read(**/id_ed25519*)",
+      "Read(**/*credential*)",
+      "Read(**/*secret*)",
+      "Read(**/.npmrc)",
+      "Read(**/.netrc)",
+      "Read(**/.aws/**)",
+      "Read(**/.ssh/**)",
+      "Read(**/.claude/settings.local.json)",
+
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Edit(**/*.pem)",
+      "Edit(**/*.key)",
+      "Edit(**/*.p12)",
+      "Edit(**/*.pfx)",
+      "Edit(**/*.keystore)",
+      "Edit(**/id_rsa*)",
+      "Edit(**/id_ed25519*)",
+      "Edit(**/*credential*)",
+      "Edit(**/*secret*)",
+      "Edit(**/.npmrc)",
+      "Edit(**/.netrc)",
+      "Edit(**/.aws/**)",
+      "Edit(**/.ssh/**)",
+      "Edit(**/.claude/settings.local.json)",
+
+      "Bash(cat *.env*)",
+      "Bash(cat *credential*)",
+      "Bash(cat *secret*)",
+      "Bash(cat *.pem)",
+      "Bash(cat *.key)",
+      "Bash(head *.env*)",
+      "Bash(tail *.env*)",
+      "Bash(less *.env*)",
+      "Bash(more *.env*)",
+      "Bash(grep * *.env*)",
+      "Bash(rg * *.env*)",
+      "Bash(type *.env*)",
+      "Bash(cp *.env* *)",
+      "Bash(mv *.env* *)",
+      "Bash(source *.env*)",
+      "Bash(. *.env*)",
+      "Bash(printenv*)",
+      "Bash(env)",
+      "Bash(set)"
+    ]
   }
 }
