@@ -1,5 +1,13 @@
-import { stripCodeFences, ensureRenderCall } from './generator';
 import { withModelFallback } from './fallback';
+import {
+  sseText,
+  anthropicDelta,
+  anthropicDone,
+  googleDelta,
+  googleDone,
+  mapError,
+  streamToNdjson,
+} from './stream';
 
 // 우선순위 순서. 앞 모델이 실패하면 다음 모델로 폴백한다.
 const GOOGLE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
@@ -65,9 +73,14 @@ function resolveApiKey(provider: Provider, clientKey?: string): string | null {
   return clientKey || ENV_KEYS[provider] || null;
 }
 
-async function callAnthropic(prompt: string, apiKey: string): Promise<string> {
+// 텍스트 조각을 순서대로 내보내는 스트림. 연결 단계의 실패(HTTP 상태 오류)는
+// 스트림을 반환하기 전에 throw 되므로 호출부에서 상태 코드로 매핑할 수 있다.
+type TextStream = AsyncGenerator<string>;
+
+async function callAnthropic(prompt: string, apiKey: string, signal: AbortSignal): Promise<TextStream> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
@@ -76,30 +89,30 @@ async function callAnthropic(prompt: string, apiKey: string): Promise<string> {
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 4096,
+      stream: true,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
 
-  if (!response.ok) {
+  if (!response.ok || !response.body) {
     throw new Error(`Claude API error: ${response.status}`);
   }
 
-  const data = (await response.json()) as {
-    content: Array<{ type: string; text?: string }>;
-  };
-
-  return data.content
-    .filter((block) => block.type === 'text')
-    .map((block) => block.text)
-    .join('');
+  return sseText(response.body, anthropicDelta, anthropicDone);
 }
 
-async function callGoogleModel(prompt: string, apiKey: string, model: string): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+async function callGoogleModel(
+  prompt: string,
+  apiKey: string,
+  model: string,
+  signal: AbortSignal,
+): Promise<TextStream> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   const response = await fetch(url, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
@@ -108,31 +121,16 @@ async function callGoogleModel(prompt: string, apiKey: string, model: string): P
     }),
   });
 
-  if (!response.ok) {
+  if (!response.ok || !response.body) {
     throw new Error(`Gemini API error: ${response.status}`);
   }
 
-  const data = (await response.json()) as {
-    candidates: Array<{
-      content: { parts: Array<{ text?: string }> };
-      finishReason?: string;
-    }>;
-  };
-
-  const candidate = data.candidates?.[0];
-  if (candidate?.finishReason === 'MAX_TOKENS') {
-    throw new Error('생성된 코드가 너무 길어 잘렸습니다. 더 간단한 컴포넌트를 요청해주세요.');
-  }
-
-  return (
-    candidate?.content?.parts
-      ?.map((part) => part.text)
-      ?.join('') ?? ''
-  );
+  return sseText(response.body, googleDelta, googleDone);
 }
 
-async function callGoogle(prompt: string, apiKey: string): Promise<string> {
-  return withModelFallback(GOOGLE_MODELS, (model) => callGoogleModel(prompt, apiKey, model));
+// 모델 폴백은 연결 단계에서만 동작한다. 스트림이 시작된 뒤의 실패는 폴백하지 않는다.
+async function callGoogle(prompt: string, apiKey: string, signal: AbortSignal): Promise<TextStream> {
+  return withModelFallback(GOOGLE_MODELS, (model) => callGoogleModel(prompt, apiKey, model, signal));
 }
 
 const server = Bun.serve({
@@ -180,35 +178,19 @@ const server = Bun.serve({
           );
         }
 
-        const text =
+        // 클라이언트가 연결을 끊으면 업스트림 요청도 중단한다.
+        const upstream = new AbortController();
+        const stream =
           provider === 'google'
-            ? await callGoogle(prompt, resolvedKey)
-            : await callAnthropic(prompt, resolvedKey);
+            ? await callGoogle(prompt, resolvedKey, upstream.signal)
+            : await callAnthropic(prompt, resolvedKey, upstream.signal);
 
-        const code = ensureRenderCall(stripCodeFences(text));
-
-        return Response.json({ code }, { headers: CORS_HEADERS });
+        return new Response(streamToNdjson(stream, () => upstream.abort()), {
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache' },
+        });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-
-        if (message.includes('503')) {
-          return Response.json(
-            { error: 'API 서버가 일시적으로 과부하 상태입니다. 잠시 후 다시 시도해주세요.' },
-            { status: 503, headers: CORS_HEADERS }
-          );
-        }
-
-        if (message.includes('429')) {
-          return Response.json(
-            { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
-            { status: 429, headers: CORS_HEADERS }
-          );
-        }
-
-        return Response.json(
-          { error: message },
-          { status: 500, headers: CORS_HEADERS }
-        );
+        const { status, error } = mapError(err);
+        return Response.json({ error }, { status, headers: CORS_HEADERS });
       }
     }
 

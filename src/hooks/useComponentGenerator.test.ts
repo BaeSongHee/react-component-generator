@@ -41,9 +41,16 @@ describe('useComponentGenerator 영속성', () => {
   });
 });
 
+const encoder = new TextEncoder();
+
+function ndjsonResponse(events: object[]): Response {
+  const body = events.map((e) => `${JSON.stringify(e)}\n`).join('');
+  return new Response(body, { status: 200 });
+}
+
 describe('useComponentGenerator generate 결과', () => {
   it('생성에 성공하면 true를 반환한다', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ code: 'render(<div />)' }) })));
+    vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([{ type: 'done', code: 'render(<div />)' }])));
     const { result } = renderHook(() => useComponentGenerator());
 
     let ok: boolean | undefined;
@@ -52,6 +59,87 @@ describe('useComponentGenerator generate 결과', () => {
     });
 
     expect(ok).toBe(true);
+  });
+
+  it('완료되면 최종 코드로 컴포넌트가 추가되고 스트리밍 상태는 비워진다', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        ndjsonResponse([
+          { type: 'delta', text: 'const A' },
+          { type: 'done', code: 'const A = 1;\n\nrender(<A />);' },
+        ]),
+      ),
+    );
+    const { result } = renderHook(() => useComponentGenerator());
+
+    await act(async () => {
+      await result.current.generate('카드', 'key', 'google');
+    });
+
+    expect(result.current.components[0].code).toBe('const A = 1;\n\nrender(<A />);');
+    expect(result.current.streamingComponent).toBeNull();
+  });
+
+  it('델타가 도착하는 동안 streamingComponent.code가 누적된다', async () => {
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        controller = c;
+      },
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(body, { status: 200 })));
+    const { result } = renderHook(() => useComponentGenerator());
+
+    let pending!: Promise<boolean>;
+    act(() => {
+      pending = result.current.generate('카드', 'key', 'google');
+    });
+
+    await act(async () => {
+      controller.enqueue(encoder.encode('{"type":"delta","text":"const "}\n'));
+      controller.enqueue(encoder.encode('{"type":"delta","text":"A"}\n'));
+    });
+    await vi.waitFor(() => expect(result.current.streamingComponent?.code).toBe('const A'));
+    expect(result.current.streamingComponent?.prompt).toBe('카드');
+
+    await act(async () => {
+      controller.enqueue(encoder.encode('{"type":"done","code":"const A;"}\n'));
+      controller.close();
+      await pending;
+    });
+    expect(result.current.streamingComponent).toBeNull();
+  });
+
+  it('스트림 중 error 이벤트가 오면 false를 반환하고 컴포넌트를 추가하지 않는다', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ndjsonResponse([{ type: 'delta', text: 'const' }, { type: 'error', error: '잘렸습니다' }])),
+    );
+    const { result } = renderHook(() => useComponentGenerator());
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.generate('카드', 'key', 'google');
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.error).toBe('잘렸습니다');
+    expect(result.current.components).toEqual([]);
+    expect(result.current.streamingComponent).toBeNull();
+  });
+
+  it('done 이벤트 없이 스트림이 끝나면 실패로 처리한다', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([{ type: 'delta', text: 'const' }])));
+    const { result } = renderHook(() => useComponentGenerator());
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.generate('카드', 'key', 'google');
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.components).toEqual([]);
   });
 
   it('생성에 실패하면 false를 반환한다', async () => {

@@ -10,7 +10,7 @@ function mockApi({ generateOk = true }: { generateOk?: boolean } = {}) {
     vi.fn(async (url: string) => {
       if (url === '/api/generate') {
         return generateOk
-          ? { ok: true, json: async () => ({ code: 'render(<div>ok</div>)' }) }
+          ? new Response(`${JSON.stringify({ type: 'done', code: 'render(<div>ok</div>)' })}\n`, { status: 200 })
           : { ok: false, json: async () => ({ error: 'API error: 503' }) };
       }
       return { ok: true, json: async () => ({ envKeys: { anthropic: false, google: false } }) };

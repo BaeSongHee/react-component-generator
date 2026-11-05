@@ -26,7 +26,7 @@ function App() {
     anthropic: false,
     google: false,
   });
-  const { components, isLoading, error, storageWarning, generate, removeComponent, clearAll } =
+  const { components, streamingComponent, isLoading, error, storageWarning, generate, removeComponent, clearAll } =
     useComponentGenerator();
 
   useEffect(() => {
@@ -186,7 +186,7 @@ function App() {
           </div>
         )}
 
-        {isLoading && (
+        {isLoading && !streamingComponent && (
           <div className="win loading-card" role="status">
             <div className="win-title">
               <span className="win-title-text">생성 중</span>
@@ -201,13 +201,15 @@ function App() {
         )}
 
         <div className="results-grid">
-          {components.map((component) => (
+          {/* 한 배열로 렌더해야 완료 시 같은 key의 카드가 유지되어 탭이 코드 → 미리보기로 전환된다. */}
+          {(streamingComponent ? [streamingComponent, ...components] : components).map((component) => (
             <ComponentCard
               key={component.id}
               component={component}
               onRemove={removeComponent}
               onRegenerate={handleGenerate}
               isLoading={isLoading}
+              isStreaming={component.id === streamingComponent?.id}
             />
           ))}
         </div>
