@@ -18,6 +18,7 @@
 `- Google 호출 URL에는 키가 쿼리스트링으로 들어간다 (`server/index.ts:99`). 이 URL이나 에러 객체 전체를 로그/응답에 출력 금지.
 `- `.env`는 커밋 금지 (`.gitignore`로 제외됨).
 `- 민감 파일 읽기/수정 금지: `.env`, `.env.*`, `*credential*`, `*secret*`, `*.pem`, `*.key`, `.npmrc`, `.netrc`, `.ssh/`, `.aws/`, `.claude/settings.local.json`은 Read/Edit은 물론 `cat`/`grep`/`cp`/`source` 같은 Bash 우회도 하지 않는다. `.claude/settings.json`의 `permissions.deny`가 1차 차단하지만 완전하지 않으므로 규칙으로도 지킨다. 환경변수가 필요하면 값을 읽지 말고 사용자에게 설정 여부만 묻는다. `.env.example`도 같은 패턴에 걸리므로 필요하면 사용자에게 요청한다.
+`- 코드를 생성·수정하는 작업을 마치면 사용자에게 보고하기 전에 `evaluator` 서브에이전트(`.claude/agents/evaluator.md`)를 호출해 적대적 리뷰를 받는다. 변경 파일 목록과 구현 의도를 넘기고, 치명/높음 지적은 수정한 뒤 보고한다. 문서·설정만 바꾼 경우는 생략할 수 있다.
 `- `permissions.deny` 패턴을 완화/삭제하거나 `.claude/settings.json`을 수정해 차단을 우회하지 않는다. 새 민감 파일 유형이 생기면 deny 목록과 이 규칙을 함께 갱신한다.
 `
 `Do's & Don'ts (근거 기반):
