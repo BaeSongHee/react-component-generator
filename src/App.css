@@ -660,3 +660,21 @@
     transform: none;
   }
 }
+
+/* ---------- 프롬프트 글자 수 ---------- */
+.prompt-meta {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.prompt-meta.is-invalid .prompt-counter,
+.prompt-error {
+  color: var(--danger);
+}
+
+.prompt-error {
+  margin-right: auto;
+}
