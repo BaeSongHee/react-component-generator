@@ -41,15 +41,25 @@ export function saveProvider(provider: Provider): void {
 
 export function loadHistory(): string[] {
   const value = readJSON(STORAGE_KEYS.history);
-  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+  if (!Array.isArray(value)) return [];
+  const strings = value.filter((v): v is string => typeof v === 'string');
+  return [...new Set(strings)].slice(0, HISTORY_MAX);
 }
 
 export function saveHistory(history: string[]): void {
   writeJSON(STORAGE_KEYS.history, history);
 }
 
-/** 새 프롬프트를 맨 앞에 두고 중복은 제거하며 최대 개수를 넘으면 오래된 항목을 버린다. */
+// 프롬프트창에 붙여넣은 API 키가 히스토리로 영속되지 않도록 키 형태를 걸러낸다.
+const SECRET_PATTERNS = [/sk-[A-Za-z0-9_-]{20,}/, /AIza[A-Za-z0-9_-]{30,}/];
+
+function looksLikeSecret(text: string): boolean {
+  return SECRET_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+/** 새 프롬프트를 맨 앞에 두고 중복은 제거하며 최대 개수를 넘으면 오래된 항목을 버린다. 키로 보이는 프롬프트는 추가하지 않는다. */
 export function addToHistory(history: string[], prompt: string, max = HISTORY_MAX): string[] {
+  if (looksLikeSecret(prompt)) return history;
   return [prompt, ...history.filter((h) => h !== prompt)].slice(0, max);
 }
 
@@ -66,7 +76,11 @@ function reviveComponent(value: unknown): GeneratedComponent | null {
 export function loadComponents(): GeneratedComponent[] {
   const value = readJSON(STORAGE_KEYS.components);
   if (!Array.isArray(value)) return [];
-  return value.map(reviveComponent).filter((c): c is GeneratedComponent => c !== null);
+  const seen = new Set<string>();
+  return value
+    .map(reviveComponent)
+    .filter((c): c is GeneratedComponent => c !== null)
+    .filter((c) => !seen.has(c.id) && seen.add(c.id));
 }
 
 export function saveComponents(components: GeneratedComponent[]): void {

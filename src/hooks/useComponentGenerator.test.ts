@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useComponentGenerator } from './useComponentGenerator';
 import { STORAGE_KEYS, loadComponents, saveComponents } from '../utils/storage';
@@ -38,5 +38,31 @@ describe('useComponentGenerator 영속성', () => {
     act(() => result.current.clearAll());
 
     expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.components) ?? 'null')).toEqual([]);
+  });
+});
+
+describe('useComponentGenerator generate 결과', () => {
+  it('생성에 성공하면 true를 반환한다', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ code: 'render(<div />)' }) })));
+    const { result } = renderHook(() => useComponentGenerator());
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.generate('카드', 'key', 'google');
+    });
+
+    expect(ok).toBe(true);
+  });
+
+  it('생성에 실패하면 false를 반환한다', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, json: async () => ({ error: '503' }) })));
+    const { result } = renderHook(() => useComponentGenerator());
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.generate('카드', 'key', 'google');
+    });
+
+    expect(ok).toBe(false);
   });
 });

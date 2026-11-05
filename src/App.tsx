@@ -38,15 +38,16 @@ function App() {
 
   const hasEnvKey = envKeys[provider];
 
-  const handleGenerate = (prompt: string) => {
+  const handleGenerate = async (prompt: string) => {
     if (!apiKey.trim() && !hasEnvKey) {
       alert(`${PROVIDER_CONFIG[provider].label} API 키를 입력하거나 .env에 설정해주세요.`);
       return;
     }
+    const ok = await generate(prompt, apiKey || undefined, provider);
+    if (!ok) return;
     const nextHistory = addToHistory(history, prompt);
     setHistory(nextHistory);
     saveHistory(nextHistory);
-    generate(prompt, apiKey || undefined, provider);
   };
 
   const handleProviderChange = (newProvider: Provider) => {

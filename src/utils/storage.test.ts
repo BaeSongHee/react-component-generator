@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
+  HISTORY_MAX,
   STORAGE_KEYS,
   addToHistory,
   loadComponents,
@@ -50,6 +51,17 @@ describe('프롬프트 히스토리 저장', () => {
     localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(['a', 1, null, 'b']));
     expect(loadHistory()).toEqual(['a', 'b']);
   });
+
+  it('저장소에 중복 항목이 있으면 첫 항목만 남긴다', () => {
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(['a', 'b', 'a']));
+    expect(loadHistory()).toEqual(['a', 'b']);
+  });
+
+  it('저장소에 최대 개수를 넘는 항목이 있으면 HISTORY_MAX개로 자른다', () => {
+    const many = Array.from({ length: HISTORY_MAX + 5 }, (_, i) => `p${i}`);
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(many));
+    expect(loadHistory()).toEqual(many.slice(0, HISTORY_MAX));
+  });
 });
 
 describe('addToHistory', () => {
@@ -63,6 +75,14 @@ describe('addToHistory', () => {
 
   it('최대 개수를 넘으면 오래된 항목을 버린다', () => {
     expect(addToHistory(['c', 'b', 'a'], 'd', 3)).toEqual(['d', 'c', 'b']);
+  });
+
+  it.each([
+    ['Anthropic 키', 'sk-ant-api03-abcdefghijklmnopqrstuvwx'],
+    ['OpenAI식 키', '이 키로 해줘 sk-abcdefghijklmnopqrstuvwx'],
+    ['Google 키', 'AIzaSyA1234567890abcdefghijklmnopqrstuv'],
+  ])('API 키로 보이는 프롬프트(%s)는 히스토리에 추가하지 않는다', (_, prompt) => {
+    expect(addToHistory(['a'], prompt)).toEqual(['a']);
   });
 
   it('원본 배열을 변경하지 않는다', () => {
@@ -89,6 +109,16 @@ describe('생성된 컴포넌트 목록 저장', () => {
     const [loaded] = loadComponents();
     expect(loaded.createdAt).toBeInstanceOf(Date);
     expect(loaded).toEqual(sample);
+  });
+
+  it('id가 중복된 컴포넌트는 첫 항목만 남긴다', () => {
+    const dup = { ...sample, prompt: '중복' };
+    localStorage.setItem(
+      STORAGE_KEYS.components,
+      JSON.stringify([sample, dup, { ...sample, id: '2' }]),
+    );
+    expect(loadComponents().map((c) => c.id)).toEqual(['1', '2']);
+    expect(loadComponents()[0].prompt).toBe('카드');
   });
 
   it('JSON이 깨져 있으면 빈 배열을 반환한다', () => {
