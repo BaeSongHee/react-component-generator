@@ -1,0 +1,39 @@
+@import 'galmuri/dist/galmuri.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light;
+  font-synthesis: none;
+  --desk: #2f6b6e;
+  --desk-dot: #3a7a7d;
+  --ink: #14141f;
+}
+
+body {
+  min-height: 100vh;
+  font-family: Galmuri11, 'Malgun Gothic', ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  background-color: var(--desk);
+  /* 2px 체크 디더링: 오래된 데스크톱 배경 */
+  background-image:
+    conic-gradient(var(--desk-dot) 25%, transparent 0 50%, var(--desk-dot) 0 75%, transparent 0);
+  background-size: 4px 4px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
